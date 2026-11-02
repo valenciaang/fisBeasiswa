@@ -1,24 +1,14 @@
-
 import re
 from flask import Flask, render_template, request
-from fuzzy_beasiswa import FuzzyBeasiswa
+from fuzzy_beasiswa import hitung_beasiswa  # 1. Import fungsi langsung (tanpa OOP)
 
 app = Flask(__name__)
-sistem = FuzzyBeasiswa()
 
 
 def rupiah(x):
     return "{:,.0f}".format(x).replace(",", ".")
 
-
 app.jinja_env.filters["rupiah"] = rupiah
-
-
-
-
-# =========================================
-# DATA PENGUJIAN
-# =========================================
 
 data_uji = [
     (2.00, 500000),
@@ -43,11 +33,10 @@ data_uji = [
     (3.50, 6000000)
 ]
 
-# Menghitung skor dan status secara otomatis
 hasil_pengujian = []
 
 for no, (ipk, gaji) in enumerate(data_uji, start=1):
-    hasil_uji = sistem.hitung(ipk, gaji)
+    hasil_uji = hitung_beasiswa(ipk, gaji)
 
     hasil_pengujian.append({
         "no": no,
@@ -56,7 +45,6 @@ for no, (ipk, gaji) in enumerate(data_uji, start=1):
         "skor": hasil_uji["Z"],
         "status": hasil_uji["keterangan"]
     })
-
 
 @app.route("/", methods=["GET", "POST"])
 def index():
@@ -71,7 +59,6 @@ def index():
 
         try:
             ipk = float(ipk_text.replace(",", "."))
-
             angka = re.sub(r"[^\d]", "", gaji_text)
 
             if angka == "":
@@ -81,12 +68,10 @@ def index():
 
             if not (0 <= ipk <= 4):
                 error = "IPK harus di antara 0 sampai 4."
-
             elif gaji < 0:
                 error = "Penghasilan tidak boleh negatif."
-
             else:
-                hasil = sistem.hitung(ipk, gaji)
+                hasil = hitung_beasiswa(ipk, gaji)
 
         except ValueError:
             error = "Masukkan IPK dan penghasilan orang tua dengan angka yang benar."
@@ -99,7 +84,6 @@ def index():
         gaji_text=gaji_text,
         hasil_pengujian=hasil_pengujian
     )
-
 
 if __name__ == "__main__":
     app.run(debug=True)
