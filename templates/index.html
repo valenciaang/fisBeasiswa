@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Kelayakan Beasiswa - Fuzzy Tsukamoto</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  </head>
+  <body>
+    <header>
+      <p>Three Musketeers</p>
+      <p>Kecerdasan Artifisial (P)</p>
+    </header>
+    <main>
+      <div>
+        <div class="card title">
+          <p>Fuzzy Inference System</p>
+          <h1>Periksa Skor Kelayakan Penerima Beasiswa</h1>
+          <p class="sub">Sistem menentukan skor kelayakan penerima beasiswa menggunakan metode Tsukamoto</p>
+        </div>
+        <form method="post">
+          {% if error %}
+            <div class="error">{{ error }}</div>
+          {% endif %}
+
+          <div class="form-input">
+            <div class="card">
+              <div>
+                <label for="ipk">IPK (Indeks Prestasi Kumulatif)</label>
+                <div class="sub">Masukkan IPK antara 0,00 sampai 4,00. Contoh: 3,6</div>
+              </div>
+              <input
+                type="text"
+                id="ipk"
+                name="ipk"
+                value="{{ ipk_text }}"
+                placeholder="3,6"
+                inputmode="decimal"
+                autocomplete="off"
+              >
+            </div>
+
+            <div class="card">
+              <div>
+                <label for="gaji">Penghasilan orang tua per bulan (Rp)</label>
+                <div class="sub">Masukkan penghasilan mulai dari Rp0. Contoh: 2.000.000</div>
+              </div>
+              <input
+                type="text"
+                id="gaji"
+                name="gaji"
+                value="{{ gaji_text }}"
+                placeholder="2.000.000"
+                inputmode="numeric"
+                autocomplete="off"
+              >
+            </div>
+          </div>
+
+          <button type="submit">Hitung</button>
+        </form>
+      </div>
+
+      {% if hasil %}
+      <div>
+        <div class="img-container">
+          <img src="{{ url_for('static', filename='foto.jpg') }}" alt="foto">
+        </div>
+        <div class="card result">
+          <h2>Skor Kelayakan Beasiswa</h2>
+          <div class="score-container">
+            <div>
+              <div class="score-number">
+                  <span>{{ hasil.Z }}</span>
+                  <span class="score-max">/ 100</span>
+                  
+              </div>
+              <span class="badge {{ hasil.keterangan.split()[0] }}">
+                  {{ hasil.keterangan }}
+              </span>
+            </div>
+
+            <div class="progress-track" data-score="{{ hasil.Z }}">
+              <div class="progress-fill"></div>
+            </div>
+          </div>
+
+          <p>
+            {% if hasil.keterangan.startswith("Layak") %}
+              Skor memenuhi batas kelayakan beasiswa.
+            {% else %}
+              Skor belum memenuhi batas kelayakan beasiswa.
+            {% endif %}
+          </p>
+        </div>
+      </div>
+      {% endif %}
+
+      <section class="card">
+          <div class="pengujian-header">
+              <div>
+                  <h2>Data Pengujian</h2>
+                  <p class="sub">Hasil pengujian sistem Fuzzy Tsukamoto</p>
+              </div>
+
+              <span class="total-pengujian">
+                  {{ hasil_pengujian|length }} Data
+              </span>
+          </div>
+
+          <div class="table-wrapper">
+              <table class="tabel-pengujian">
+                  <thead>
+                      <tr>
+                          <th>No.</th>
+                          <th>IPK</th>
+                          <th>Penghasilan Orang Tua</th>
+                          <th>Skor</th>
+                          <th>Status</th>
+                      </tr>
+                  </thead>
+
+                  <tbody>
+                      {% for item in hasil_pengujian %}
+                      <tr>
+                          <td>{{ item.no }}</td>
+                          <td>{{ "%.2f"|format(item.ipk) }}</td>
+                          <td>Rp {{ item.gaji|rupiah }}</td>
+                          <td class="skor-cell">
+                              {{ "%.2f"|format(item.skor) }}
+                          </td>
+                          <td>
+                              {% if item.status == "Layak" %}
+                                  <span class="status-table layak">
+                                      Layak
+                                  </span>
+                              {% else %}
+                                  <span class="status-table tidak-layak">
+                                      Tidak Layak
+                                  </span>
+                              {% endif %}
+                          </td>
+                      </tr>
+                      {% endfor %}
+                  </tbody>
+              </table>
+          </div>
+      </section>
+
+    </main>
+    <footer>
+      <p>Three Musketeers</p>
+      <p>Kecerdasan Artifisial (P)</p>
+    </footer>
+    <script>
+      document.querySelectorAll(".progress-track").forEach(function (track) {
+        var fill = track.querySelector(".progress-fill");
+        fill.style.width = "0%";
+        requestAnimationFrame(function () {
+          fill.style.width = track.dataset.score + "%";
+        });
+      });
+    </script>
+  </body>
+</html>
