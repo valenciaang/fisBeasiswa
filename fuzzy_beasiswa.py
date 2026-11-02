@@ -46,14 +46,12 @@ class Rule:
         mu_ipk = ipk[self.labelIPK]
         mu_gaji = penghasilan[self.labelPenghasilan]
 
-        # Operator OR = MAX
         alpha = min(mu_ipk, mu_gaji)
 
-        # Konsekuen monoton (Tsukamoto): skor naik 0 -> 100
         if self.labelSkorKelayakan == "LAYAK":
-            z = 100 * alpha
+            z = 0 + alpha * (100 - 0)    
         else:
-            z = 100 * (1 - alpha)
+            z = 100 - alpha * (100 - 0)  
 
         return {
             "nomor": self.nomor,
@@ -72,21 +70,18 @@ class FuzzyBeasiswa:
     GAJI_MAX = 5000000
 
     def __init__(self):
-        # IPK: hanya "TINGGI" yang dipakai (linier naik 3.0 -> 4.0)
         self.ipk = Variabel(
             "IPK", 3.0, 4.0,
             rendah=(3.0, 4.0),
             tinggi=(3.0, 4.0)
         )
 
-        # Penghasilan: "RENDAH" = tidak mampu (linier turun 500rb -> 5jt)
         self.gaji = Variabel(
             "Penghasilan Orang Tua", 500000, 5000000,
             rendah=(500000, 5000000),
             tinggi=(500000, 5000000)
         )
 
-        # JIKA IPK tinggi ATAU penghasilan rendah (tidak mampu) MAKA layak
         self.rules = [
             Rule(1, "TINGGI", "RENDAH", "LAYAK"),
             Rule(2, "TINGGI", "TINGGI", "TIDAK_LAYAK"),
@@ -95,20 +90,31 @@ class FuzzyBeasiswa:
         ]
 
     def keterangan(self, Z):
-        return "Layak" if Z >= 50 else "Tidak Layak"
+        if Z >= 50:
+            return "Layak"
+        else:
+            return "Tidak Layak"
 
     def hitung(self, ipk, gaji):
         mu_ipk = self.ipk.fuzzy(ipk)
         mu_gaji = self.gaji.fuzzy(gaji)
 
-        # Gerbang tolak
         if ipk < self.IPK_MIN or gaji >= self.GAJI_MAX:
-            alasan = "IPK < 3.0" if ipk < self.IPK_MIN else "Penghasilan >= 5jt"
+            if ipk < self.IPK_MIN:
+                alasan = "IPK < 3.0"
+            else:
+                alasan = "Penghasilan >= 5jt"
             return {
                 "ipk": ipk,
                 "gaji": gaji,
-                "mu_ipk": {k: round(v, 4) for k, v in mu_ipk.items()},
-                "mu_gaji": {k: round(v, 4) for k, v in mu_gaji.items()},
+                "mu_ipk": {
+                    "RENDAH": round(mu_ipk["RENDAH"], 4),
+                    "TINGGI": round(mu_ipk["TINGGI"], 4)
+                },
+                "mu_gaji": {
+                    "RENDAH": round(mu_gaji["RENDAH"], 4),
+                    "TINGGI": round(mu_gaji["TINGGI"], 4)
+                },
                 "rules": [],
                 "total_alpha": 0,
                 "total_alpha_z": 0,
@@ -126,14 +132,22 @@ class FuzzyBeasiswa:
             total_alpha += hasil["alpha"]
             total_alpha_z += hasil["alpha"] * hasil["z"]
 
-        # Defuzzifikasi weighted average
-        Z = round(total_alpha_z / total_alpha, 2) if total_alpha > 0 else 0
+        if total_alpha > 0:
+            Z = round(total_alpha_z / total_alpha, 2)
+        else:
+            Z = 0
 
         return {
             "ipk": ipk,
             "gaji": gaji,
-            "mu_ipk": {k: round(v, 4) for k, v in mu_ipk.items()},
-            "mu_gaji": {k: round(v, 4) for k, v in mu_gaji.items()},
+            "mu_ipk": {
+                "RENDAH": round(mu_ipk["RENDAH"], 4),
+                "TINGGI": round(mu_ipk["TINGGI"], 4)
+            },
+            "mu_gaji": {
+                "RENDAH": round(mu_gaji["RENDAH"], 4),
+                "TINGGI": round(mu_gaji["TINGGI"], 4)
+            },
             "rules": hasil_rules,
             "total_alpha": round(total_alpha, 4),
             "total_alpha_z": round(total_alpha_z, 2),
@@ -154,4 +168,4 @@ if __name__ == "__main__":
     f = FuzzyBeasiswa()
     for i, (ipk, gaji) in enumerate(data, 1):
         h = f.hitung(ipk, gaji)
-        # print(f"{i:>2} | IPK {ipk:.2f} | Rp {gaji:>9,} | Skor {h['Z']:>6} | {h['keterangan']}")
+        print(f"{i:>2} | IPK {ipk:.2f} | Rp {gaji:>9,} | Skor {h['Z']:>6} | {h['keterangan']}")
